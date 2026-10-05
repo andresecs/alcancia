@@ -21,7 +21,7 @@ const docs: Record<string, Doc> = {
           "Umpire and judge sign-in: phone numbers, and one-time codes sent by text.",
           "Payments: how entries were paid. Card details are handled by [Stripe] and never stored on this site.",
           "Calcutta: names of bidders and the amounts bid.",
-          "Technical data: [browser storage used to keep you signed in; any analytics, if added].",
+          "Technical data: anonymous page-view statistics through Vercel Web Analytics, which uses no cookies and doesn't identify you; [browser storage used to keep you signed in].",
         ],
       },
       {
@@ -35,7 +35,7 @@ const docs: Record<string, Doc> = {
       {
         heading: "Who we share it with",
         points: [
-          "Service providers that run the site: [Google Firebase] (database and text messages), [Stripe] (payments), [hosting provider].",
+          "Service providers that run the site: [Google Firebase] (database and text messages), [Stripe] (payments), [Vercel] (hosting and analytics).",
           "Other participants see names, teams, results and Calcutta owners on the public pages.",
           "We do not sell personal information. [Confirm.]",
         ],
