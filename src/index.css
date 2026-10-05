@@ -1486,6 +1486,13 @@ a.partner-card:focus-visible {
   text-transform: uppercase;
 }
 
+.find-players-count {
+  margin: -1rem 0 1.5rem;
+  color: var(--color-foreground-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
 .find-players-content.has-query .find-players-title {
   font-size: clamp(2.75rem, 8vw, 5rem);
 }
@@ -6303,4 +6310,45 @@ a.partner-card:focus-visible {
   .menu-panel a {
     font-size: 2.25rem;
   }
+}
+
+/* Desktop: the pages sit in the header as tabs, the selected one marked on
+   the header's bottom edge; smaller screens use the menu toggle instead */
+.site-tabs {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .site-tabs {
+    display: flex;
+    align-self: stretch;
+    margin-left: 2rem;
+  }
+
+  .site-tabs ul {
+    border-bottom: 0;
+    overflow: visible;
+  }
+
+  .site-tabs button {
+    height: 100%;
+    padding: 0 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .site-tabs button.is-active::before {
+    bottom: -1px;
+  }
+
+  .site-header .menu-toggle {
+    display: none;
+  }
+}
+
+/* Umpire header: the tabs, then the admin menu toggle */
+.umpire-header__nav {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }

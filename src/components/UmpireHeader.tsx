@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import ReserveLogo from "./ReserveLogo";
+import SiteTabs from "./SiteTabs";
 
 export type UmpirePage = "events" | "settings";
 
 // The umpire area's header: the logo with who is signed in centered under it,
-// and the admin menu. `label` is "Admin" or the judge's name; omit it when
+// the site's tabs (desktop) and the admin menu. `label` is "Admin" or the judge's name; omit it when
 // nobody is signed in.
 export default function UmpireHeader({
   label,
@@ -30,6 +31,8 @@ export default function UmpireHeader({
           </Link>
           {label && <span>{label}</span>}
         </div>
+        <div className="umpire-header__nav">
+          <SiteTabs />
         <button
           className={menuOpen ? "menu-toggle is-open" : "menu-toggle"}
           onClick={() => setMenuOpen((open) => !open)}
@@ -40,6 +43,7 @@ export default function UmpireHeader({
           <span />
           <span />
         </button>
+        </div>
       </header>
 
       {menuOpen && (

@@ -3,21 +3,12 @@ import SiteFooter from "../components/SiteFooter";
 import SiteHeader from "../components/SiteHeader";
 import PageNotice from "../components/PageNotice";
 import { useLiveEvent } from "../lib/useEvents";
-
-const players = [
-  { name: "Guille Cagigas", club: "Hudson Yards" },
-  { name: "Jane Doe", club: "Upper East" },
-  { name: "John Doe", club: "Hudson Yards" },
-  { name: "Maria Santos", club: "Another Club" },
-  { name: "Alex Morgan", club: "Upper East" },
-  { name: "Sam Taylor", club: "Another Club" },
-  { name: "Andres Castellanos", club: "" },
-  { name: "Adarsh Arun", club: "" },
-  { name: "Peter Parker", club: "" },
-];
+import { useEventPlayers } from "../lib/useEventPlayers";
 
 export default function FindPlayers() {
-  const { live } = useLiveEvent();
+  const { event, live } = useLiveEvent();
+  // The event's real sign-ups and players; only names and clubs are shown
+  const { players, loaded } = useEventPlayers(event?.id);
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -28,7 +19,7 @@ export default function FindPlayers() {
         : players.filter((player) =>
             player.name.toLowerCase().includes(normalizedQuery),
           ),
-    [normalizedQuery],
+    [normalizedQuery, players],
   );
 
   return (
@@ -53,6 +44,13 @@ export default function FindPlayers() {
             <div className="find-players-title" role="heading" aria-level={1}>
               Find Players
             </div>
+            {loaded && (
+              <p className="find-players-count" aria-live="polite">
+                {players.length === 0
+                  ? "No one has signed up yet. Be the first!"
+                  : `${players.length} player${players.length === 1 ? " has" : "s have"} signed up so far`}
+              </p>
+            )}
             <label className="form-field find-player-search">
               <span>Search players</span>
               <input
@@ -74,9 +72,9 @@ export default function FindPlayers() {
             <div className="player-results" aria-live="polite">
               {results.length > 0 ? (
                 results.map((player) => (
-                  <article className="player-result" key={player.name}>
+                  <article className="player-result" key={player.id}>
                     <p>{player.name}</p>
-                    {player.club && <span>{player.club}</span>}
+                    {player.homeClub && <span>{player.homeClub}</span>}
                   </article>
                 ))
               ) : (

@@ -1,6 +1,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useState } from "react";
 import OtpBoxes from "../components/OtpBoxes";
 import UmpireHeader, { type UmpirePage } from "../components/UmpireHeader";
+import SiteHeader from "../components/SiteHeader";
 import SettingsPage from "../components/umpire/SettingsPage";
 import EventDetailsSections, { InfoSection } from "../components/umpire/EventDetailsSections";
 import EventNav from "../components/umpire/EventNav";
@@ -202,6 +203,10 @@ export default function Umpire() {
 
   return (
     <main className="umpire-page">
+      {/* Signing in is still part of the public site; the admin header comes after */}
+      {!signedIn && authStep !== "judging" ? (
+        <SiteHeader />
+      ) : (
       <UmpireHeader
         label={signedIn ? "Admin" : authStep === "judging" ? judge?.name : undefined}
         onSignOut={signedIn || authStep === "judging" ? () => void signOut() : undefined}
@@ -215,6 +220,7 @@ export default function Umpire() {
             : undefined
         }
       />
+      )}
 
       {authStep === "phone" && (
         <section className="umpire-auth">
