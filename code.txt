@@ -1,0 +1,1126 @@
+/**********************************************************************
+ *  HAMPTONS INVITATIONAL - CALCUTTA LIVE BOARD
+ *  Reserve Invitationals
+ *
+ *  You do not need to change anything in this file except, if you
+ *  want to, the ADMIN_CODE on the line just below.
+ **********************************************************************/
+
+var ADMIN_CODE = "1932";
+
+// One judge per group. Each code can only edit the results of its own group.
+// Rename them so the sheet records who entered what, e.g. "3003": { name: "Nico", ... }
+var SCORERS = {
+  "3003": { name: "Judge \u00b7 Division I Group A", div: "I",  grp: "A" },
+  "3602": { name: "Judge \u00b7 Division I Group B", div: "I",  grp: "B" },
+  "3633": { name: "Judge \u00b7 Division I Group C", div: "I",  grp: "C" },
+  "5008": { name: "Judge \u00b7 Division I Group D", div: "I",  grp: "D" },
+  "5625": { name: "Judge \u00b7 Division II Group 1", div: "II", grp: "Group 1" },
+  "5710": { name: "Judge \u00b7 Division II Group 2", div: "II", grp: "Group 2" },
+  "5733": { name: "Judge \u00b7 Division II Group 3", div: "II", grp: "Group 3" },
+  "5968": { name: "Judge \u00b7 Division II Group 4", div: "II", grp: "Group 4" },
+  "8972": { name: "Judge \u00b7 Division II Group 5", div: "II", grp: "Group 5" },
+  "9784": { name: "Judge \u00b7 Division II Group 6", div: "II", grp: "Group 6" }
+};     // <-- your private code for editing bids
+var MIN_BID    = 500;        // minimum / starting bid per team
+// One sheet per division
+var SHEETS = { "I": "Calcutta I", "II": "Calcutta II" };
+var BIDS_SHEET = "Bids";
+var MATCHES_SHEET = "Matches";
+var BRACKET_SHEET = "Bracket";
+var PHOTOS_SHEET = "Photos";
+
+// Past winners of the Reserve pro-am circuit. Add a line as each event finishes:
+// [date, amateur, pro, event]
+var CHAMPIONS = [
+  ["Aug 1, 2026",  "Scott Bruckmann",   "Valentin Lang",    "Hamptons 2026 \u2014 D1"],
+  ["Aug 1, 2026",  "Keith Menin",       "Guille Cagigas",   "Hamptons 2026 \u2014 D2"],
+  ["Jun 17, 2026", "Felipe Maclean",    "Gonzalo Alfonso",  "Reserve Cup V \u2014 Marbella"],
+  ["Apr 19, 2026", "Keith Menin",       "Guille Cagigas",   "Beverly Hills 2026"],
+  ["Jan 21, 2026", "Josh Keller",       "Jaime Fermosell",  "Reserve Cup IV \u2014 Miami"],
+  ["Jan 21, 2026", "Scott Bruckmann",   "Pablo Diaz",       "Miami 2026 \u2014 D1"],
+  ["Jan 21, 2026", "Keith Menin",       "Guille Cagigas",   "Miami 2026 \u2014 D2"],
+  ["Nov 2025",     "Christophe Browne", "Danny Diaz",       "Miami 2025 \u2014 D1"],
+  ["Nov 2025",     "Martin Franklin",   "Diego Ramos",      "Miami 2025 \u2014 D2"],
+  ["Sep 17, 2025", "Mark Groussman",    "Maty Marina",      "Reserve Cup III \u2014 Marbella"],
+  ["Aug 20, 2025", "Tony Imbessi",      "Daniel Wulff",     "Hamptons 2025 \u2014 D1"],
+  ["Aug 20, 2025", "Seth Lambert",      "Raleigh Smith",    "Hamptons 2025 \u2014 D2"],
+  ["Apr 2025",     "Jack Harris",       "Jordan Brail",     "Beverly Hills 2025"],
+  ["Jan 22, 2025", "Louis Leveque",     "Martin Di Nemo",   "Reserve Cup II \u2014 Miami"],
+  ["Jan 2024",     "Michael Simkins",   "Michael Yanguas",  "Reserve Cup I \u2014 Miami"]
+];
+
+// How many teams advance out of each group
+var ADVANCE = 2;
+
+// Division I: 4 groups x 2 = 8 -> straight to the quarter-finals.
+// Division II: 6 groups x 2 = 12 qualifiers. The 4 best-ranked go straight
+// through; the other 8 play a qualifying round for the remaining 4 places.
+var DIRECT_BYES = { "I": 0, "II": 4 };
+
+// Manual tie-break for the seeding list. Only used when two teams are level on
+// group position, matches won AND game difference - it never overrides a real
+// difference. The first name is seeded above the second.
+// Use the amateur's name exactly as it appears on the site.
+var SEED_ORDER_FIX = [
+  ["Brad Melshenker", "Perry Weitz"]
+];
+
+// Fixed cross-group quarter-finals. When a division is listed here the draw
+// ignores seeding for the first round and simply crosses the groups: the winner
+// of one group plays the runner-up of the other, and vice versa.
+// Each entry is a pair of groups that face each other. Delete the line for a
+// division to go back to the seeded 1v8 / 4v5 / 2v7 / 3v6 draw.
+var CROSS_GROUPS = {
+  "I": [["A", "B"], ["C", "D"]]
+};
+
+// Where each group plays. Address only, no owner name.
+// Anyone holding the link can read whatever the page receives, so only put
+// here what you are happy for every guest to see.
+var VENUES = {
+  "I": {
+    "A": "379 Ocean Road, Bridgehampton, NY 11932",
+    "B": "478 Noyac Path, Water Mill, NY",
+    "C": "636/634 North Sea Mecox Road, Southampton, NY 11968",
+    "D": "636/634 North Sea Mecox Road, Southampton, NY 11968"
+  },
+  "II": {
+    "Group 1": "379 Ocean Road, Bridgehampton, NY 11932",
+    "Group 2": "74 Little Noyac Path",
+    "Group 3": "43 Robertson Drive, Sag Harbor, NY 11963",
+    "Group 4": "180 Springy Banks Road, East Hampton, NY",
+    "Group 5": "19 Ambleside Lane",
+    "Group 6": "10 Morgan Hill Way, Bridgehampton, NY"
+  }
+};
+
+// Minimum raise over the current price
+var MIN_INCREMENT = 250;
+
+// false = the board is read-only for everyone but you (current setting)
+// true  = guests get a Bid button on each team
+var GUEST_BIDDING = false;
+
+// Only relevant when GUEST_BIDDING is true.
+// true  = guest bids wait for you to accept them
+// false = a valid guest bid takes effect immediately
+var REQUIRE_APPROVAL = true;
+
+// The drawn groups: division -> group name -> team ids
+var GROUPS = {
+  "I": {
+    "A": ["t09", "t10", "t01", "t07"],
+    "B": ["t15", "t06", "t13", "t14"],
+    "C": ["t08", "t02", "t12", "t03"],
+    "D": ["t00", "t11", "t05", "t04"]
+  },
+  "II": {
+    "Group 1": ["t23", "t21", "t35", "t30"],
+    "Group 2": ["t18", "t20", "t17", "t32"],
+    "Group 3": ["t34", "t38", "t39", "t25"],
+    "Group 4": ["t19", "t16", "t29", "t33"],
+    "Group 5": ["t36", "t24", "t37", "t22"],
+    "Group 6": ["t27", "t28", "t26", "t31"]
+  }
+};
+
+// The 40 teams: [id, division, amateur, pro]
+var TEAMS = [
+  ["t00","I","Scott Bruckmann","Valentin Lang"],
+  ["t01","I","Luis Rodriguez","Carlos Rodriguez"],
+  ["t02","I","Ricardo Garcia","Nico Warnholtz"],
+  ["t03","I","Eric Rubin","Pablo Casado"],
+  ["t04","I","Mark Groussman","Quito Santibanez"],
+  ["t05","I","Tim Taylor","Gio Lappenti"],
+  ["t06","I","Noah Bachow","Augusto Stortini"],
+  ["t07","I","Shawn Ankari","Tyler Pasko"],
+  ["t08","I","Ryan Schinman","Gianki Rodriguez"],
+  ["t09","I","Patrick Dovigi","Pablo Diaz"],
+  ["t10","I","Sean Lambert","Raleigh Smith"],
+  ["t11","I","Peter Zink","Pablo Rodriguez"],
+  ["t12","I","Christophe Browne","Max Mora"],
+  ["t13","I","Stu Schwadron","Diego Valderrama"],
+  ["t14","I","Tony Imbesi","Daniel Wulff"],
+  ["t15","I","Felipe MacLean","Willy Canas"],
+  ["t16","II","Matt Low","Israel Rodriguez"],
+  ["t17","II","Joey Low","Shoval Malik"],
+  ["t18","II","Jeff Lipsitz","Cooper Sakaguchi"],
+  ["t19","II","Jack Berney","Agustin Velasco"],
+  ["t20","II","Larry Edelstein","Juan Scardino"],
+  ["t21","II","Jamie Horowitz","Adri Casado"],
+  ["t22","II","Ricky Parikh","Roy Tabet"],
+  ["t23","II","Jason Gallus","Gabi Meana"],
+  ["t24","II","Brad Melshenker","Guga Vazquez"],
+  ["t25","II","Matt Lill","Pepo Zurro"],
+  ["t26","II","Dean Lazer","Pablo Ibanez"],
+  ["t27","II","Josh Fox","Sergio Conde"],
+  ["t28","II","Matthew Weinstein","Alvaro Llaneza"],
+  ["t29","II","Jon Friedman","Gero Barrios"],
+  ["t30","II","Nam Bui","Juan Martin Diaz"],
+  ["t31","II","Alex Pellegrini","Maxi Rozas"],
+  ["t32","II","Keith Menin","Guille Cagigas"],
+  ["t33","II","Chet Gupta","Maty Marina"],
+  ["t34","II","Perry Weitz","Juanpi Andrada"],
+  ["t35","II","Jay Rittberg","Alejandro Soriano"],
+  ["t36","II","Jeff Altman","Alberto Ibanez"],
+  ["t37","II","Ben Shirazi","Cayetano Rocafort"],
+  ["t38","II","Scott Stackman","Balta Parra"],
+  ["t39","II","Leerom Segal","Dani Diaz"]
+];
+
+/* ------------------------------------------------------------------ */
+/*  Serves the public web page                                        */
+/* ------------------------------------------------------------------ */
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile("Index")
+    .setTitle("Calcutta - Live Auction Board")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1")
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ------------------------------------------------------------------ */
+/*  RUN THIS ONCE to build the sheet                                  */
+/* ------------------------------------------------------------------ */
+function setup() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var total = 0;
+
+  // Remove the old single-sheet version if it exists
+  var legacy = ss.getSheetByName("Calcutta");
+  if (legacy) ss.deleteSheet(legacy);
+
+  for (var div in SHEETS) {
+    var name = SHEETS[div];
+    var sh = ss.getSheetByName(name);
+    if (!sh) sh = ss.insertSheet(name);
+    sh.clear();
+
+    sh.getRange(1, 1, 1, 7).setValues([[
+      "ID", "Division", "Amateur", "Pro", "Bid", "Owner", "Sold"
+    ]]).setFontWeight("bold");
+
+    var rows = [];
+    for (var i = 0; i < TEAMS.length; i++) {
+      var t = TEAMS[i];
+      if (t[1] !== div) continue;
+      rows.push([t[0], t[1], t[2], t[3], MIN_BID, "", ""]);
+    }
+
+    sh.getRange(2, 1, rows.length, 7).setValues(rows);
+    sh.getRange(2, 5, rows.length, 1).setNumberFormat("$#,##0");
+    sh.setFrozenRows(1);
+    sh.autoResizeColumns(1, 7);
+    total += rows.length;
+  }
+
+  // Bid log / pending queue
+  var bs = ss.getSheetByName(BIDS_SHEET);
+  if (!bs) bs = ss.insertSheet(BIDS_SHEET);
+  bs.clear();
+  bs.getRange(1, 1, 1, 7).setValues([[
+    "Time", "TeamID", "Division", "Team", "Bidder", "Amount", "Status"
+  ]]).setFontWeight("bold");
+  bs.getRange(2, 6, 500, 1).setNumberFormat("$#,##0");
+  bs.setFrozenRows(1);
+  bs.autoResizeColumns(1, 7);
+
+  var msg = "Done. " + total + " teams loaded at $" + MIN_BID + " each, " +
+            "split across the sheets: " + SHEETS["I"] + " and " + SHEETS["II"] + ". " +
+            "Next: Deploy > New deployment > Web app, set \"Who has access\" to Anyone, " +
+            "then share the URL.";
+  // Written to the execution log only. A UI alert would hang the run
+  // for six minutes when executed from the editor.
+  Logger.log(msg);
+}
+
+/* ------------------------------------------------------------------ */
+/*  Read - called by the page every few seconds                        */
+/* ------------------------------------------------------------------ */
+function getState() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var out = [];
+
+  for (var div in SHEETS) {
+    var sh = ss.getSheetByName(SHEETS[div]);
+    if (!sh) continue;
+    var last = sh.getLastRow();
+    if (last < 2) continue;
+
+    var vals = sh.getRange(2, 1, last - 1, 7).getValues();
+    for (var i = 0; i < vals.length; i++) {
+      var r = vals[i];
+      if (!r[0]) continue;
+      out.push({
+        id:    String(r[0]),
+        div:   String(r[1] || div),
+        am:    String(r[2]),
+        pro:   String(r[3]),
+        bid:   Number(r[4]) || 0,
+        owner: String(r[5] || ""),
+        sold:  String(r[6] || "").toLowerCase() === "yes"
+      });
+    }
+  }
+
+  if (!out.length) return { ready: false, teams: [] };
+
+  return {
+    ready: true,
+    teams: out,
+    pending: pendingBids_(),
+    ts: new Date().toISOString(),
+    min: MIN_BID,
+    inc: MIN_INCREMENT,
+    guestBids: GUEST_BIDDING,
+    approval: REQUIRE_APPROVAL,
+    groups: GROUPS,
+    advance: ADVANCE,
+    byes: DIRECT_BYES,
+    venues: VENUES,
+    matches: matches_(),
+    bracket: bracket_(),
+    photos: photos_(),
+    champions: CHAMPIONS,
+    seedFix: SEED_ORDER_FIX
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Groups, fixtures and standings                                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * RUN THIS ONCE to create the Matches sheet and every round-robin fixture.
+ * Safe: if the sheet already exists it leaves your scores alone.
+ */
+function setupMatches() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(MATCHES_SHEET);
+  if (sh) {
+    Logger.log("Matches sheet already exists. Nothing was changed. " +
+               "Delete the tab first if you want to rebuild the fixtures.");
+    return;
+  }
+  sh = ss.insertSheet(MATCHES_SHEET);
+  sh.getRange(1, 1, 1, 10).setValues([[
+    "MatchID", "Division", "Group", "TeamA", "TeamB",
+    "GamesA", "GamesB", "Entered by", "Order", "Time"
+  ]]).setFontWeight("bold");
+
+  // round robin order for 4 teams
+  var PAIRS = [[0,1],[2,3],[0,2],[1,3],[0,3],[1,2]];
+  var rows = [];
+  for (var div in GROUPS) {
+    for (var g in GROUPS[div]) {
+      var ids = GROUPS[div][g];
+      for (var i = 0; i < PAIRS.length; i++) {
+        var a = ids[PAIRS[i][0]], b = ids[PAIRS[i][1]];
+        if (!a || !b) continue;
+        rows.push([div + "|" + g + "|" + (i + 1), div, g, a, b, "", "", "", i + 1, ""]);
+      }
+    }
+  }
+  sh.getRange(2, 1, rows.length, 10).setValues(rows);
+  sh.setFrozenRows(1);
+  sh.autoResizeColumns(1, 10);
+  Logger.log(rows.length + " matches created. Redeploy a new version to see them on the link.");
+}
+
+// Adds the newer column headers to a Matches sheet built before they existed
+function ensureMatchCols_(sh) {
+  if (!sh.getRange(1, 8).getValue())  sh.getRange(1, 8).setValue("Entered by").setFontWeight("bold");
+  if (!sh.getRange(1, 9).getValue())  sh.getRange(1, 9).setValue("Order").setFontWeight("bold");
+  if (!sh.getRange(1, 10).getValue()) sh.getRange(1, 10).setValue("Time").setFontWeight("bold");
+}
+
+function matches_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MATCHES_SHEET);
+  if (!sh) return [];
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var vals = sh.getRange(2, 1, last - 1, 10).getValues();
+  var out = [];
+  var seen = {};
+  for (var i = 0; i < vals.length; i++) {
+    var r = vals[i];
+    if (!r[0]) continue;
+    var ga = r[5], gb = r[6];
+    // Order falls back to the order the rows appear in, for sheets built
+    // before this column existed.
+    var key = String(r[1]) + "|" + String(r[2]);
+    seen[key] = (seen[key] || 0) + 1;
+    var ord = Number(r[8]);
+    if (!ord || isNaN(ord)) ord = seen[key];
+    // Apps Script drops null values on the way to the page, which would make an
+    // unplayed match look like a 0-0 result. Send an explicit flag instead.
+    var hasA = !(ga === "" || ga === null || typeof ga === "undefined");
+    var hasB = !(gb === "" || gb === null || typeof gb === "undefined");
+    var nA = hasA ? Number(ga) : -1;
+    var nB = hasB ? Number(gb) : -1;
+    var done = hasA && hasB && !isNaN(nA) && !isNaN(nB);
+    out.push({
+      row:  i + 2,
+      id:   String(r[0]),
+      div:  String(r[1]),
+      grp:  String(r[2]),
+      a:    String(r[3]),
+      b:    String(r[4]),
+      done: done,
+      ga:   done ? nA : -1,
+      gb:   done ? nB : -1,
+      ord:  ord,
+      time: String(r[9] || "")
+    });
+  }
+  return out;
+}
+
+function setScore(code, row, ga, gb) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MATCHES_SHEET);
+  if (!sh) throw new Error("Run setupMatches() first.");
+
+  // which group does this match belong to?
+  var meta = sh.getRange(row, 2, 1, 2).getValues()[0];
+  var who = scorer_(code, String(meta[0]), String(meta[1]));
+
+  var A = (ga === "" || ga === null || typeof ga === "undefined") ? "" : Number(ga);
+  var B = (gb === "" || gb === null || typeof gb === "undefined") ? "" : Number(gb);
+  if (A !== "" && (isNaN(A) || A < 0 || A > 99)) throw new Error("Invalid score.");
+  if (B !== "" && (isNaN(B) || B < 0 || B > 99)) throw new Error("Invalid score.");
+  if (A !== "" && B !== "" && A === B) throw new Error("A set cannot end level.");
+
+  sh.getRange(row, 6, 1, 2).setValues([[A, B]]);
+
+  ensureMatchCols_(sh);
+  sh.getRange(row, 8).setValue(A === "" ? "" : (who + " \u00b7 " + Utilities.formatDate(
+    new Date(), Session.getScriptTimeZone(), "HH:mm")));
+
+  return getState();
+}
+
+function setTime(code, row, text) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MATCHES_SHEET);
+  if (!sh) throw new Error("Run setupMatches() first.");
+  var meta = sh.getRange(row, 2, 1, 2).getValues()[0];
+  scorer_(code, String(meta[0]), String(meta[1]));
+
+  var t = String(text == null ? "" : text).replace(/[<>]/g, "").trim();
+  if (t.length > 20) t = t.substring(0, 20);
+  ensureMatchCols_(sh);
+  sh.getRange(row, 10).setValue(t);
+  return getState();
+}
+
+// dir = -1 moves the match one place earlier, +1 one place later
+function moveMatch(code, row, dir) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MATCHES_SHEET);
+    if (!sh) throw new Error("Run setupMatches() first.");
+    var meta = sh.getRange(row, 2, 1, 2).getValues()[0];
+    var div = String(meta[0]), grp = String(meta[1]);
+    scorer_(code, div, grp);
+    ensureMatchCols_(sh);
+
+    // every match of this group, in their current order
+    var last = sh.getLastRow();
+    var vals = sh.getRange(2, 1, last - 1, 10).getValues();
+    var list = [];
+    for (var i = 0; i < vals.length; i++) {
+      if (String(vals[i][1]) !== div || String(vals[i][2]) !== grp) continue;
+      var o = Number(vals[i][8]);
+      list.push({ row: i + 2, ord: (!o || isNaN(o)) ? list.length + 1 : o });
+    }
+    list.sort(function (a, b) { return a.ord - b.ord; });
+
+    var at = -1;
+    for (var k = 0; k < list.length; k++) if (list[k].row === row) at = k;
+    if (at < 0) throw new Error("Match not found.");
+
+    var to = at + (Number(dir) < 0 ? -1 : 1);
+    if (to < 0 || to >= list.length) return getState();   // already at the edge
+
+    var tmp = list[at]; list[at] = list[to]; list[to] = tmp;
+
+    // rewrite 1..n so the numbers stay tidy
+    for (var j = 0; j < list.length; j++) sh.getRange(list[j].row, 9).setValue(j + 1);
+    return getState();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Admin only: wipes every score in the tournament back to blank.
+// Times and match order are left alone.
+function clearAllScores(code) {
+  guard_(code);
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(MATCHES_SHEET);
+  if (!sh) throw new Error("Run setupMatches() first.");
+  var last = sh.getLastRow();
+  var n = last - 1;
+  if (n < 1) return getState();
+  var blanks = [];
+  for (var i = 0; i < n; i++) blanks.push(["", ""]);
+  sh.getRange(2, 6, n, 2).setValues(blanks);      // GamesA / GamesB
+  var who = [];
+  for (var j = 0; j < n; j++) who.push([""]);
+  sh.getRange(2, 8, n, 1).setValues(who);         // Entered by
+  return getState();
+}
+
+function clearScore(code, row) {
+  return setScore(code, row, "", "");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Knockout bracket                                                  */
+/* ------------------------------------------------------------------ */
+
+// The slots each division plays. Later rounds start empty and are filled
+// from the winners of the round before.
+var BRACKET_PLAN = {
+  "I":  [["QF",1],["QF",2],["QF",3],["QF",4],["SF",1],["SF",2],["F",1],["3P",1]],
+  "II": [["QR",1],["QR",2],["QR",3],["QR",4],
+         ["QF",1],["QF",2],["QF",3],["QF",4],["SF",1],["SF",2],["F",1],["3P",1]]
+};
+
+/**
+ * RUN ONCE. Creates a Photos tab already filled in with every team, so all you
+ * have to do is paste an image link next to each name. Safe to run again: it
+ * only adds teams that are missing and never overwrites a link you have pasted.
+ */
+function setupPhotos() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(PHOTOS_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(PHOTOS_SHEET);
+    sh.getRange(1, 1, 1, 5).setValues([[
+      "TeamID", "Amateur", "Pro", "Amateur photo URL", "Pro photo URL"
+    ]]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+  }
+  var have = {};
+  var last = sh.getLastRow();
+  if (last >= 2) {
+    var ex = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (var i = 0; i < ex.length; i++) have[String(ex[i][0])] = true;
+  }
+  var add = [];
+  for (var t = 0; t < TEAMS.length; t++) {
+    if (have[TEAMS[t][0]]) continue;
+    add.push([TEAMS[t][0], TEAMS[t][2], TEAMS[t][3], "", ""]);
+  }
+  if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 5).setValues(add);
+  sh.autoResizeColumns(1, 5);
+  Logger.log(add.length + " teams added. Paste a photo link in columns D and E, then redeploy.");
+}
+
+// Turns a Google Drive share link into something an <img> tag can actually load.
+function imageUrl_(raw) {
+  var u = String(raw || "").trim();
+  if (!u) return "";
+  var m = u.match(/\/file\/d\/([A-Za-z0-9_-]{20,})/) ||
+          u.match(/[?&]id=([A-Za-z0-9_-]{20,})/) ||
+          u.match(/^([A-Za-z0-9_-]{25,})$/);
+  if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w400";
+  return u;
+}
+
+function photos_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PHOTOS_SHEET);
+  if (!sh) return {};
+  var last = sh.getLastRow();
+  if (last < 2) return {};
+  var vals = sh.getRange(2, 1, last - 1, 5).getValues();
+  var out = {};
+  for (var i = 0; i < vals.length; i++) {
+    var id = String(vals[i][0] || "");
+    if (!id) continue;
+    var am = imageUrl_(vals[i][3]), pr = imageUrl_(vals[i][4]);
+    if (am || pr) out[id] = { am: am, pro: pr };
+  }
+  return out;
+}
+
+function bracketSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(BRACKET_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(BRACKET_SHEET);
+    sh.getRange(1, 1, 1, 9).setValues([[
+      "Division", "Round", "Slot", "TeamA", "TeamB", "GamesA", "GamesB", "Time", "Entered by"
+    ]]).setFontWeight("bold");
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function bracket_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BRACKET_SHEET);
+  if (!sh) return [];
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var vals = sh.getRange(2, 1, last - 1, 9).getValues();
+  var out = [];
+  for (var i = 0; i < vals.length; i++) {
+    var r = vals[i];
+    if (!r[0]) continue;
+    var hasA = !(r[5] === "" || r[5] === null), hasB = !(r[6] === "" || r[6] === null);
+    var nA = hasA ? Number(r[5]) : -1, nB = hasB ? Number(r[6]) : -1;
+    var done = hasA && hasB && !isNaN(nA) && !isNaN(nB);
+    out.push({
+      row: i + 2,
+      div: String(r[0]),
+      round: String(r[1]),
+      slot: Number(r[2]),
+      a: String(r[3] || ""),
+      b: String(r[4] || ""),
+      done: done,
+      ga: done ? nA : -1,
+      gb: done ? nB : -1,
+      time: String(r[7] || "")
+    });
+  }
+  return out;
+}
+
+// Ranks the qualifiers of a division: matches won, then game difference.
+// Returns null unless every group in that division is finished.
+// -1 if a is manually placed above b, 1 if below, 0 if not listed
+function manualOrder_(aId, bId) {
+  var an = "", bn = "";
+  for (var i = 0; i < TEAMS.length; i++) {
+    if (TEAMS[i][0] === aId) an = TEAMS[i][2];
+    if (TEAMS[i][0] === bId) bn = TEAMS[i][2];
+  }
+  for (var k = 0; k < SEED_ORDER_FIX.length; k++) {
+    var hi = SEED_ORDER_FIX[k][0], lo = SEED_ORDER_FIX[k][1];
+    if (an === hi && bn === lo) return -1;
+    if (an === lo && bn === hi) return 1;
+  }
+  return 0;
+}
+
+function seedList_(div) {
+  var ms = matches_();
+  var gs = GROUPS[div] || {};
+  var names = [];
+  for (var g in gs) names.push(g);
+  var seeds = [];
+
+  for (var i = 0; i < names.length; i++) {
+    var grp = names[i];
+    var ids = gs[grp];
+    var mine = ms.filter(function (m) { return m.div === div && m.grp === grp; });
+    if (!mine.length) return null;
+    for (var k = 0; k < mine.length; k++) if (!mine[k].done) return null;
+
+    var rec = {};
+    for (var z = 0; z < ids.length; z++) rec[ids[z]] = { id: ids[z], w: 0, gf: 0, ga: 0 };
+    for (var j = 0; j < mine.length; j++) {
+      var m = mine[j];
+      if (!rec[m.a] || !rec[m.b]) continue;
+      rec[m.a].gf += m.ga; rec[m.a].ga += m.gb;
+      rec[m.b].gf += m.gb; rec[m.b].ga += m.ga;
+      if (m.ga > m.gb) rec[m.a].w++; else rec[m.b].w++;
+    }
+    // Who won when these two met? -1 means A finished ahead.
+    function h2h(x, y) {
+      for (var t = 0; t < mine.length; t++) {
+        var mm = mine[t];
+        if (!mm.done) continue;
+        if (mm.a === x && mm.b === y) return mm.ga > mm.gb ? -1 : 1;
+        if (mm.a === y && mm.b === x) return mm.gb > mm.ga ? -1 : 1;
+      }
+      return 0;
+    }
+
+    // Inside a group: matches won, then game difference, then head to head.
+    var rows = ids.map(function (id) { return rec[id]; });
+    rows.sort(function (A, B) {
+      if (B.w !== A.w) return B.w - A.w;
+      var dA = A.gf - A.ga, dB = B.gf - B.ga;
+      if (dB !== dA) return dB - dA;
+      var h = h2h(A.id, B.id);
+      if (h !== 0) return h;
+      return B.gf - A.gf;
+    });
+    for (var q = 0; q < ADVANCE && q < rows.length; q++) {
+      seeds.push({ id: rows[q].id, grp: grp, pos: q + 1, w: rows[q].w, d: rows[q].gf - rows[q].ga, gf: rows[q].gf });
+    }
+  }
+
+  // Across the groups, finishing first counts for more than any record:
+  // every group winner is seeded above every runner-up. Within each tier it
+  // is matches won, then game difference, then games won.
+  seeds.sort(function (A, B) {
+    if (A.pos !== B.pos) return A.pos - B.pos;
+    if (B.w !== A.w) return B.w - A.w;
+    if (B.d !== A.d) return B.d - A.d;
+    var man = manualOrder_(A.id, B.id);
+    if (man !== 0) return man;
+    return B.gf - A.gf;
+  });
+  return seeds;
+}
+
+// Every ordering of a short list
+function permute_(arr, fn) {
+  if (arr.length <= 1) { fn(arr.slice()); return; }
+  for (var i = 0; i < arr.length; i++) {
+    var head = arr[i];
+    var rest = arr.slice(0, i).concat(arr.slice(i + 1));
+    permute_(rest, function (tail) { fn([head].concat(tail)); });
+  }
+}
+
+// Every way of splitting a list into ordered pairs
+function choosePairs_(pool, fn) {
+  function walk(left, acc) {
+    if (!left.length) { fn(acc.slice()); return; }
+    var first = left[0];
+    for (var i = 1; i < left.length; i++) {
+      var rest = left.slice(1, i).concat(left.slice(i + 1));
+      acc.push([first, left[i]]);
+      walk(rest, acc);
+      acc.pop();
+    }
+  }
+  walk(pool.slice(), []);
+}
+
+// Admin only. Seeds the first knockout round of a division from the group tables.
+function buildBracket(code, div) {
+  guard_(code);
+  div = String(div);
+  var plan = BRACKET_PLAN[div];
+  if (!plan) throw new Error("Unknown division.");
+
+  var seeds = seedList_(div);
+  if (!seeds) throw new Error("Every group in Division " + div + " must be finished first.");
+
+  var sh = bracketSheet_();
+
+  // clear this division's existing rows
+  var last = sh.getLastRow();
+  if (last >= 2) {
+    var vals = sh.getRange(2, 1, last - 1, 9).getValues();
+    for (var i = vals.length - 1; i >= 0; i--) {
+      if (String(vals[i][0]) === div) sh.deleteRow(i + 2);
+    }
+  }
+
+  var pairs = {};   // "ROUND-SLOT" -> [idA, idB]
+  // Teams from the same group must not meet again in the first knockout round.
+  // Start from the textbook pairing, then find the arrangement that keeps them
+  // apart while straying as little as possible from the seeding.
+  if (CROSS_GROUPS[div]) {
+    // Straight cross between the paired groups, no seeding involved.
+    var cross = CROSS_GROUPS[div];
+    var byGroup = {};
+    for (var g1 = 0; g1 < seeds.length; g1++) {
+      var sd = seeds[g1];
+      if (!byGroup[sd.grp]) byGroup[sd.grp] = {};
+      byGroup[sd.grp][sd.pos] = sd.id;
+    }
+    // Each pair of groups produces two quarter-finals, and they are put in
+    // OPPOSITE halves of the draw. If both went in the same half, the two teams
+    // from one group could meet again in the semi-final. Split this way, the
+    // earliest they can meet is the final.
+    var firstHalf = [], secondHalf = [];
+    for (var cp = 0; cp < cross.length; cp++) {
+      var gA = cross[cp][0], gB = cross[cp][1];
+      if (!byGroup[gA] || !byGroup[gB]) {
+        throw new Error("Group " + (byGroup[gA] ? gB : gA) + " has no qualifiers yet.");
+      }
+      if (!byGroup[gA][1] || !byGroup[gA][2] || !byGroup[gB][1] || !byGroup[gB][2]) {
+        throw new Error("Groups " + gA + " and " + gB + " need two qualifiers each.");
+      }
+      firstHalf.push([byGroup[gA][1], byGroup[gB][2]]);    // winner of A v runner-up of B
+      secondHalf.push([byGroup[gB][1], byGroup[gA][2]]);   // winner of B v runner-up of A
+    }
+
+    // QF1 and QF2 feed one semi-final, QF3 and QF4 the other
+    var slot = 1;
+    for (var h1 = 0; h1 < firstHalf.length; h1++)  pairs["QF-" + (slot++)] = firstHalf[h1];
+    for (var h2 = 0; h2 < secondHalf.length; h2++) pairs["QF-" + (slot++)] = secondHalf[h2];
+
+  } else if (div === "I") {
+    if (seeds.length < 8) throw new Error("Expected 8 qualifiers, found " + seeds.length + ".");
+
+    var hostsI = [0, 3, 1, 2];      // the seed waiting in QF1..QF4
+    var defI   = [7, 4, 6, 5];      // who they meet by the book: 1v8, 4v5, 2v7, 3v6
+    var bestI = null, bestCostI = -1;
+
+    permute_([0, 1, 2, 3], function (order) {
+      var cost = 0;
+      for (var a = 0; a < 4; a++) {
+        var opp = defI[order[a]];
+        if (seeds[hostsI[a]].grp === seeds[opp].grp) return;   // same group, rejected
+        cost += Math.abs(opp - defI[a]);
+      }
+      if (bestCostI < 0 || cost < bestCostI) { bestCostI = cost; bestI = order.slice(); }
+    });
+
+    var useI = bestI || [0, 1, 2, 3];
+    if (!bestI) Logger.log("Division I: no arrangement could keep every group apart.");
+    for (var b = 0; b < 4; b++) {
+      pairs["QF-" + (b + 1)] = [seeds[hostsI[b]].id, seeds[defI[useI[b]]].id];
+    }
+
+  } else {
+    if (seeds.length < 12) throw new Error("Expected 12 qualifiers, found " + seeds.length + ".");
+
+    var hostsII = [0, 3, 1, 2];                          // seed waiting in QF1..QF4
+    var defII   = [[7, 8], [4, 11], [6, 9], [5, 10]];    // 8v9, 5v12, 7v10, 6v11
+    var bestII = null, bestCostII = -1;
+
+    choosePairs_([4, 5, 6, 7, 8, 9, 10, 11], function (arr) {
+      // A set of four pairs is only half the answer - which pair goes to which
+      // slot matters too, so try every assignment of these pairs to the slots.
+      permute_([0, 1, 2, 3], function (slotOf) {
+        var cost = 0;
+        for (var c = 0; c < 4; c++) {
+          var pr = arr[slotOf[c]];
+          var x = pr[0], y = pr[1];
+          if (seeds[x].grp === seeds[y].grp) return;                  // replay in the qualifier
+          if (seeds[x].grp === seeds[hostsII[c]].grp) return;          // replay one round later
+          if (seeds[y].grp === seeds[hostsII[c]].grp) return;
+          var d1 = Math.abs(x - defII[c][0]) + Math.abs(y - defII[c][1]);
+          var d2 = Math.abs(x - defII[c][1]) + Math.abs(y - defII[c][0]);
+          cost += Math.min(d1, d2);
+        }
+        if (bestCostII < 0 || cost < bestCostII) {
+          bestCostII = cost;
+          bestII = [];
+          for (var e = 0; e < 4; e++) bestII.push([arr[slotOf[e]][0], arr[slotOf[e]][1]]);
+        }
+      });
+    });
+
+    var useII = bestII || defII;
+    if (!bestII) Logger.log("Division II: no arrangement could keep every group apart.");
+    for (var f = 0; f < 4; f++) {
+      pairs["QR-" + (f + 1)] = [seeds[useII[f][0]].id, seeds[useII[f][1]].id];
+      pairs["QF-" + (f + 1)] = [seeds[hostsII[f]].id, ""];
+    }
+  }
+
+  var rows = [];
+  for (var p = 0; p < plan.length; p++) {
+    var rd = plan[p][0], slot = plan[p][1];
+    var key = rd + "-" + slot;
+    var ab = pairs[key] || ["", ""];
+    rows.push([div, rd, slot, ab[0], ab[1], "", "", "", ""]);
+  }
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, 9).setValues(rows);
+  sh.autoResizeColumns(1, 9);
+  return getState();
+}
+
+function bracketRow_(row) {
+  var sh = bracketSheet_();
+  var r = sh.getRange(row, 1, 1, 9).getValues()[0];
+  if (!r[0]) throw new Error("Bracket match not found.");
+  return { sh: sh, div: String(r[0]), round: String(r[1]), slot: Number(r[2]) };
+}
+
+function setBracketScore(code, row, ga, gb) {
+  guard_(code);
+  var t = bracketRow_(row);
+  var A = (ga === "" || ga === null || typeof ga === "undefined") ? "" : Number(ga);
+  var B = (gb === "" || gb === null || typeof gb === "undefined") ? "" : Number(gb);
+  if (A !== "" && (isNaN(A) || A < 0 || A > 99)) throw new Error("Invalid score.");
+  if (B !== "" && (isNaN(B) || B < 0 || B > 99)) throw new Error("Invalid score.");
+  if (A !== "" && B !== "" && A === B) throw new Error("A set cannot end level.");
+  t.sh.getRange(row, 6, 1, 2).setValues([[A, B]]);
+  t.sh.getRange(row, 9).setValue(A === "" ? "" : ("Admin \u00b7 " + Utilities.formatDate(
+    new Date(), Session.getScriptTimeZone(), "HH:mm")));
+  return getState();
+}
+
+function setBracketTime(code, row, text) {
+  guard_(code);
+  var t = bracketRow_(row);
+  var v = String(text == null ? "" : text).replace(/[<>]/g, "").trim();
+  if (v.length > 20) v = v.substring(0, 20);
+  t.sh.getRange(row, 8).setValue(v);
+  return getState();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Guest bidding                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * RUN THIS ONCE when upgrading an existing board.
+ * It only adds the Bids sheet. It does NOT touch Calcutta I or
+ * Calcutta II, so every bid, owner and sold mark you already have
+ * is preserved. Safe to run more than once.
+ */
+function addBidsSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var existed = !!ss.getSheetByName(BIDS_SHEET);
+  var bs = bidsSheet_();
+  bs.getRange(2, 6, Math.max(bs.getMaxRows() - 1, 1), 1).setNumberFormat("$#,##0");
+
+  var msg = existed
+    ? "The Bids sheet was already there. Nothing was changed."
+    : "Bids sheet created. Your existing bids were left untouched.";
+  msg += " Now redeploy: Deploy > Manage deployments > pencil > Version: New version > Deploy.";
+  Logger.log(msg);
+}
+function bidsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var bs = ss.getSheetByName(BIDS_SHEET);
+  if (!bs) {
+    bs = ss.insertSheet(BIDS_SHEET);
+    bs.getRange(1, 1, 1, 7).setValues([[
+      "Time", "TeamID", "Division", "Team", "Bidder", "Amount", "Status"
+    ]]).setFontWeight("bold");
+    bs.setFrozenRows(1);
+  }
+  return bs;
+}
+
+function pendingBids_() {
+  // Read-only: never creates the sheet, because getState() is polled
+  // by every viewer every few seconds.
+  var bs = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BIDS_SHEET);
+  if (!bs) return [];
+  var last = bs.getLastRow();
+  if (last < 2) return [];
+  var vals = bs.getRange(2, 1, last - 1, 7).getValues();
+  var out = [];
+  for (var i = 0; i < vals.length; i++) {
+    var r = vals[i];
+    if (String(r[6]).toLowerCase() !== "pending") continue;
+    out.push({
+      row:    i + 2,
+      time:   r[0] ? new Date(r[0]).toISOString() : "",
+      id:     String(r[1]),
+      div:    String(r[2]),
+      team:   String(r[3]),
+      bidder: String(r[4]),
+      amount: Number(r[5]) || 0
+    });
+  }
+  return out;
+}
+
+function clean_(txt, max) {
+  var v = String(txt == null ? "" : txt);
+  v = v.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+  if (v.length > max) v = v.substring(0, max);
+  return v;
+}
+
+// Called by anyone holding the link - no admin code needed
+function submitBid(id, bidder, amount) {
+  if (!GUEST_BIDDING) {
+    throw new Error("Bidding from the link is closed. The auctioneer records all bids.");
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var name = clean_(bidder, 40);
+    if (!name) throw new Error("Please enter your name.");
+
+    var t = locate_(id);
+    if (!t) throw new Error("Team not found.");
+
+    var current = Number(t.sh.getRange(t.row, 5).getValue()) || 0;
+    var isSold  = String(t.sh.getRange(t.row, 7).getValue()).toLowerCase() === "yes";
+    if (isSold) throw new Error("This team has already been sold.");
+
+    var amt = Number(amount);
+    if (isNaN(amt)) throw new Error("Enter a valid amount.");
+    var floor = current + MIN_INCREMENT;
+    if (amt < floor) {
+      throw new Error("Minimum next bid is $" + floor + ".");
+    }
+
+    var div  = String(t.sh.getRange(t.row, 2).getValue());
+    var team = String(t.sh.getRange(t.row, 3).getValue()) + " & " +
+               String(t.sh.getRange(t.row, 4).getValue());
+
+    var bs = bidsSheet_();
+    bs.appendRow([new Date(), id, div, team, name, amt,
+                  REQUIRE_APPROVAL ? "pending" : "accepted"]);
+
+    if (!REQUIRE_APPROVAL) {
+      t.sh.getRange(t.row, 5).setValue(amt);
+      t.sh.getRange(t.row, 6).setValue(name);
+    }
+
+    return {
+      ok: true,
+      queued: REQUIRE_APPROVAL,
+      state: getState()
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function acceptBid(code, row) {
+  guard_(code);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var bs = bidsSheet_();
+    var r = bs.getRange(row, 1, 1, 7).getValues()[0];
+    if (String(r[6]).toLowerCase() !== "pending") throw new Error("That bid is no longer pending.");
+
+    var id = String(r[1]), name = String(r[4]), amt = Number(r[5]) || 0;
+    var t = locate_(id);
+    if (!t) throw new Error("Team not found.");
+
+    t.sh.getRange(t.row, 5).setValue(amt);
+    t.sh.getRange(t.row, 6).setValue(name);
+    bs.getRange(row, 7).setValue("accepted");
+
+    // Any other pending bid on this team at or below the new price is now outbid
+    var last = bs.getLastRow();
+    if (last >= 2) {
+      var all = bs.getRange(2, 1, last - 1, 7).getValues();
+      for (var i = 0; i < all.length; i++) {
+        var rr = all[i];
+        if (String(rr[6]).toLowerCase() !== "pending") continue;
+        if (String(rr[1]) !== id) continue;
+        if ((Number(rr[5]) || 0) <= amt) bs.getRange(i + 2, 7).setValue("outbid");
+      }
+    }
+    return getState();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function dismissBid(code, row) {
+  guard_(code);
+  var bs = bidsSheet_();
+  if (String(bs.getRange(row, 7).getValue()).toLowerCase() !== "pending") {
+    throw new Error("That bid is no longer pending.");
+  }
+  bs.getRange(row, 7).setValue("dismissed");
+  return getState();
+}
+
+/* ------------------------------------------------------------------ */
+/*  Writes - all require the admin code                               */
+/* ------------------------------------------------------------------ */
+function locate_(id) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (var div in SHEETS) {
+    var sh = ss.getSheetByName(SHEETS[div]);
+    if (!sh) continue;
+    var last = sh.getLastRow();
+    if (last < 2) continue;
+    var ids = sh.getRange(2, 1, last - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0]) === String(id)) return { sh: sh, row: i + 2 };
+    }
+  }
+  return null;
+}
+
+function guard_(code) {
+  if (String(code) !== String(ADMIN_CODE)) throw new Error("Incorrect admin code.");
+}
+
+function target_(code, id) {
+  guard_(code);
+  var t = locate_(id);
+  if (!t) throw new Error("Team not found. Run setup() first.");
+  return t;
+}
+
+function checkCode(code) {
+  var c = String(code);
+  if (c === String(ADMIN_CODE)) {
+    return { ok: true, role: "admin", name: "Admin" };
+  }
+  var j = SCORERS[c];
+  if (j) {
+    return { ok: true, role: "judge", name: j.name, div: j.div, grp: j.grp };
+  }
+  return { ok: false };
+}
+
+// Returns who is writing a score, and refuses a judge outside their own group
+function scorer_(code, div, grp) {
+  var c = String(code);
+  if (c === String(ADMIN_CODE)) return "Admin";
+  var j = SCORERS[c];
+  if (!j) throw new Error("Incorrect code.");
+  if (j.div !== div || j.grp !== grp) {
+    throw new Error("You can only enter results for your own group (" + j.grp + ").");
+  }
+  return j.name;
+}
+
+function bumpBid(code, id, delta) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var t = target_(code, id);
+    var cur = Number(t.sh.getRange(t.row, 5).getValue()) || 0;
+    var next = cur + Number(delta);
+    if (next < 0) next = 0;
+    t.sh.getRange(t.row, 5).setValue(next);
+    return getState();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function setBid(code, id, amount) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var t = target_(code, id);
+    var v = Number(amount);
+    if (isNaN(v) || v < 0) v = 0;
+    t.sh.getRange(t.row, 5).setValue(v);
+    return getState();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function setOwner(code, id, owner) {
+  var t = target_(code, id);
+  t.sh.getRange(t.row, 6).setValue(String(owner || ""));
+  return getState();
+}
+
+function setSold(code, id, sold) {
+  var t = target_(code, id);
+  t.sh.getRange(t.row, 7).setValue(sold ? "yes" : "");
+  return getState();
+}
+
+function resetTeam(code, id) {
+  var t = target_(code, id);
+  t.sh.getRange(t.row, 5, 1, 3).setValues([[MIN_BID, "", ""]]);
+  return getState();
+}
+
+function resetAll(code) {
+  guard_(code);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (var div in SHEETS) {
+    var sh = ss.getSheetByName(SHEETS[div]);
+    if (!sh) continue;
+    var last = sh.getLastRow();
+    var n = last - 1;
+    if (n < 1) continue;
+    var rows = [];
+    for (var i = 0; i < n; i++) rows.push([MIN_BID, "", ""]);
+    sh.getRange(2, 5, n, 3).setValues(rows);
+  }
+  return getState();
+}

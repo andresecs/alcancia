@@ -1,0 +1,12 @@
+{
+  "name": "Reserve Pro-Am",
+  "short_name": "PRO-AM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8f9",
+  "theme_color": "#f5f8f9",
+  "icons": [
+    { "src": "/icons/icon-light-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-light-220.png", "sizes": "220x220", "type": "image/png", "purpose": "any" }
+  ]
+}

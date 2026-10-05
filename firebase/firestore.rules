@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Reserve Pro-Am: database rules WHILE SIGN-IN IS STILL THE DEMO ONE.
+// Paste into Firebase console > Firestore Database > Rules, then Publish.
+//
+// With the demo sign-in nobody is really signed in, so the umpire pages use
+// the database like any visitor. These rules therefore let anyone who has the
+// site's (public) Firebase config change event data. Fine for building and
+// testing; NOT safe for a real event. They do check the shape of what's
+// written, so a bug can't fill the database with junk.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // events/{id}: one per event
+    match /events/{eventId} {
+      allow read: if true;
+      allow delete: if true;
+      allow create, update: if request.resource.data.id == int(eventId)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 1
+        && request.resource.data.title.size() <= 15
+        && request.resource.data.status in ['Active', 'Scheduled', 'Draft', 'Completed']
+        // a cover photo is stored inline; keep it well under the 1 MB limit
+        && (!('image' in request.resource.data) || request.resource.data.image.size() <= 750000);
+
+      // events/{id}/items/{kind:key}: everything inside the event
+      match /items/{itemId} {
+        allow read: if true;
+        allow delete: if true;
+        allow create, update: if request.resource.data.kind in [
+            'config', 'team', 'player', 'pro', 'signup', 'guestBid',
+            'score', 'meta', 'order', 'seedOverride', 'bracketSeeds'
+          ]
+          && request.resource.data.key is string
+          && itemId.matches(request.resource.data.kind + ':.*');
+      }
+    }
+
+    // settings/main: Umpire > Settings
+    match /settings/{doc} {
+      allow read, write: if doc == 'main';
+    }
+
+    // judges/{code}: scoring codes, one per group
+    match /judges/{code} {
+      allow read, delete: if true;
+      allow create, update: if code.matches('[0-9]{6,12}')
+        && request.resource.data.eventId is int
+        && request.resource.data.div is string
+        && request.resource.data.grp is string;
+    }
+  }
+}
